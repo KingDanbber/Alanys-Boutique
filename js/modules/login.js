@@ -1,6 +1,20 @@
 import { signIn, isDeveloper } from '../lib/auth.js'
 import { toast } from '../lib/utils.js'
 
+function bindPasswordToggle(root) {
+  root.querySelectorAll('[data-toggle-password]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.password-wrap')
+      const input = wrap?.querySelector('input')
+      if (!input) return
+      const show = input.type === 'password'
+      input.type = show ? 'text' : 'password'
+      btn.textContent = show ? '🙈' : '👁'
+      btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Ver contraseña')
+    })
+  })
+}
+
 export function renderLogin(root) {
   root.innerHTML = `
     <div class="page auth-page">
@@ -12,11 +26,16 @@ export function renderLogin(root) {
         <label class="label">Correo</label>
         <input type="email" name="email" class="input" required placeholder="correo@ejemplo.com" autocomplete="email" />
         <label class="label">Contraseña</label>
-        <input type="password" name="password" class="input" required placeholder="••••••••" autocomplete="current-password" />
+        <div class="password-wrap">
+          <input type="password" name="password" class="input" required placeholder="••••••••" autocomplete="current-password" />
+          <button type="button" class="password-toggle" data-toggle-password aria-label="Ver contraseña">👁</button>
+        </div>
         <button type="submit" class="btn btn-primary btn-block" id="login-btn">Entrar</button>
       </form>
     </div>
   `
+
+  bindPasswordToggle(root)
 
   const form = root.querySelector('#login-form')
   form.addEventListener('submit', async (e) => {
