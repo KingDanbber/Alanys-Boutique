@@ -1,5 +1,6 @@
 import { getProfile, signOut } from '../lib/auth.js'
 import { CONFIG } from '../lib/config.js'
+import { icon } from '../lib/icons.js'
 import { renderBottomNav } from './nav.js'
 
 export function renderDashboard(root) {
@@ -40,15 +41,29 @@ export function renderDashboard(root) {
       <section class="section">
         <h2 class="section-title">Acciones rápidas</h2>
         <div class="quick-grid">
-          <a href="#/productos" class="quick-btn">📦 Productos</a>
-          <a href="#/pedidos" class="quick-btn">🛍️ Pedidos</a>
-          <a href="#/clientes" class="quick-btn">👥 Clientes</a>
-          <a href="#/gastos" class="quick-btn">💸 Gastos</a>
+          <a href="#/productos" class="quick-btn">
+            <span class="quick-icon">${icon('package', 24)}</span>
+            <span>Productos</span>
+          </a>
+          <a href="#/pedidos" class="quick-btn">
+            <span class="quick-icon">${icon('shoppingBag', 24)}</span>
+            <span>Pedidos</span>
+          </a>
+          <a href="#/clientes" class="quick-btn">
+            <span class="quick-icon">${icon('users', 24)}</span>
+            <span>Clientes</span>
+          </a>
+          <a href="#/gastos" class="quick-btn">
+            <span class="quick-icon">${icon('wallet', 24)}</span>
+            <span>Gastos</span>
+          </a>
         </div>
       </section>
 
       <section class="section">
-        <button type="button" class="btn btn-ghost btn-block" id="btn-logout">Cerrar sesión</button>
+        <button type="button" class="btn btn-ghost btn-block" id="btn-logout">
+          ${icon('logOut', 18)} Cerrar sesión
+        </button>
         <p class="footer-note">${CONFIG.BUSINESS_NAME}</p>
       </section>
 

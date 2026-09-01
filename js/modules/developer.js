@@ -1,13 +1,14 @@
 import { getProfile, signOut, isDeveloper } from '../lib/auth.js'
 import { getSupabase } from '../lib/supabase.js'
 import { toast } from '../lib/utils.js'
+import { icon } from '../lib/icons.js'
 
 const DEV_NAV = [
-  { id: 'overview', label: 'Overview', hash: '#/developer' },
-  { id: 'modules', label: 'Módulos', hash: '#/developer/modules' },
-  { id: 'users', label: 'Usuarios', hash: '#/developer/users' },
-  { id: 'data', label: 'Datos', hash: '#/developer/data' },
-  { id: 'settings', label: 'Config', hash: '#/developer/settings' },
+  { id: 'overview', label: 'Overview', hash: '#/developer', name: 'layout' },
+  { id: 'modules', label: 'Módulos', hash: '#/developer/modules', name: 'boxes' },
+  { id: 'users', label: 'Usuarios', hash: '#/developer/users', name: 'users' },
+  { id: 'data', label: 'Datos', hash: '#/developer/data', name: 'database' },
+  { id: 'settings', label: 'Config', hash: '#/developer/settings', name: 'settings' },
 ]
 
 function shell(active, body) {
@@ -15,19 +16,25 @@ function shell(active, body) {
   return `
     <div class="page dev-page">
       <header class="dev-topbar">
-        <div>
-          <p class="dev-badge">DEVELOPER</p>
-          <h1>Alany · Core</h1>
+        <div class="dev-brand">
+          <span class="dev-brand-icon">${icon('terminal', 18)}</span>
+          <div>
+            <p class="dev-badge">DEVELOPER</p>
+            <h1>Alany · Core</h1>
+          </div>
         </div>
         <div class="dev-user">
           <span>${profile?.full_name || 'Dev'}</span>
-          <button type="button" id="dev-logout" class="dev-icon-btn" title="Salir">⎋</button>
+          <button type="button" id="dev-logout" class="dev-icon-btn" title="Salir">${icon('logOut', 16)}</button>
         </div>
       </header>
       <main class="dev-main">${body}</main>
       <nav class="dev-bottom">
         ${DEV_NAV.map((n) => `
-          <a href="${n.hash}" class="${active === n.id ? 'active' : ''}">${n.label}</a>
+          <a href="${n.hash}" class="${active === n.id ? 'active' : ''}">
+            ${icon(n.name, 18)}
+            <span>${n.label}</span>
+          </a>
         `).join('')}
       </nav>
     </div>
@@ -53,9 +60,9 @@ export function renderDevOverview(root) {
       <div class="dev-card"><span>Estado</span><strong class="ok">OK</strong></div>
     </div>
     <div class="dev-links">
-      <a href="#/developer/modules">Gestionar módulos →</a>
-      <a href="#/developer/users">Usuarios del negocio →</a>
-      <a href="#/dashboard">Ver app de las dueñas →</a>
+      <a href="#/developer/modules">${icon('boxes', 16)} Gestionar módulos →</a>
+      <a href="#/developer/users">${icon('users', 16)} Usuarios del negocio →</a>
+      <a href="#/dashboard">${icon('sparkles', 16)} Ver app de las dueñas →</a>
     </div>
   `)
   bindLogout(root)
@@ -145,7 +152,7 @@ export function renderDevSettings(root) {
       <input name="whatsapp" value="8716079531" />
       <label>Facebook</label>
       <input name="facebook" value="Alany boutique" />
-      <button type="submit">Guardar</button>
+      <button type="submit">${icon('check', 16)} Guardar</button>
     </form>
   `)
   bindLogout(root)

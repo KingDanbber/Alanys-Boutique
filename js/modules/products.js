@@ -2,6 +2,7 @@ import { getSupabase } from '../lib/supabase.js'
 import { getProfile } from '../lib/auth.js'
 import { formatMoney, toast, escapeHtml } from '../lib/utils.js'
 import { uploadImage } from '../lib/cloudinary.js'
+import { icon } from '../lib/icons.js'
 import { renderBottomNav } from './nav.js'
 
 const CATEGORIES = ['Blusas', 'Vestidos', 'Pantalones', 'Faldas', 'Accesorios', 'Calzado', 'Otro']
@@ -12,7 +13,7 @@ export async function renderProducts(root) {
     <div class="page app-page">
       <header class="topbar">
         <h1 class="topbar-title">Productos</h1>
-        <button type="button" class="btn btn-primary btn-sm" id="btn-new-product">+ Nuevo</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-new-product">${icon('plus', 16)} Nuevo</button>
       </header>
       <div id="products-list" class="section">
         <p class="muted center">Cargando...</p>
@@ -62,7 +63,7 @@ async function loadProducts(root) {
   list.innerHTML = data.map((p) => `
     <article class="product-card" data-id="${p.id}">
       <div class="product-img">
-        ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" />` : '<span class="no-img">👗</span>'}
+        ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="" />` : `<span class="no-img">${icon('shirt', 28)}</span>`}
       </div>
       <div class="product-body">
         <h3>${escapeHtml(p.name)}</h3>
@@ -81,7 +82,7 @@ function openProductForm(root, product = null) {
     <div class="modal">
       <header class="modal-header">
         <h2>${product ? 'Editar' : 'Nuevo'} producto</h2>
-        <button type="button" class="icon-btn" id="modal-close">✕</button>
+        <button type="button" class="icon-btn" id="modal-close">${icon('x', 20)}</button>
       </header>
       <form id="product-form" class="modal-body">
         <label class="label">Nombre prenda</label>

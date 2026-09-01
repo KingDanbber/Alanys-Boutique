@@ -1,5 +1,6 @@
 import { signUp } from '../lib/auth.js'
 import { toast } from '../lib/utils.js'
+import { icon } from '../lib/icons.js'
 
 function bindPasswordToggle(root) {
   root.querySelectorAll('[data-toggle-password]').forEach((btn) => {
@@ -9,7 +10,7 @@ function bindPasswordToggle(root) {
       if (!input) return
       const show = input.type === 'password'
       input.type = show ? 'text' : 'password'
-      btn.textContent = show ? '🙈' : '👁'
+      btn.innerHTML = show ? icon('eyeOff', 20) : icon('eye', 20)
       btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Ver contraseña')
     })
   })
@@ -18,7 +19,7 @@ function bindPasswordToggle(root) {
 export function renderRegister(root) {
   root.innerHTML = `
     <div class="page auth-page">
-      <a href="#/" class="back-link">← Volver</a>
+      <a href="#/" class="back-link">${icon('arrowLeft', 18)} Volver</a>
       <form id="reg-form" class="card auth-card">
         <img src="assets/logo.jpg" alt="" class="logo-sm" />
         <h1>Crear cuenta</h1>
@@ -30,7 +31,7 @@ export function renderRegister(root) {
         <label class="label">Contraseña</label>
         <div class="password-wrap">
           <input type="password" name="password" class="input" required minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
-          <button type="button" class="password-toggle" data-toggle-password aria-label="Ver contraseña">👁</button>
+          <button type="button" class="password-toggle" data-toggle-password aria-label="Ver contraseña">${icon('eye', 20)}</button>
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="reg-btn">Registrarme</button>
       </form>
