@@ -147,7 +147,7 @@ button, input, select { font: inherit; }
   gap: 2px; font-size: 0.65rem; color: var(--muted);
 }
 .nav-item.active { color: var(--brand); font-weight: 600; }
-.nav-icon { font-size: 1.15rem; }
+/* nav-icon svg */
 
 /* Products */
 .product-card {
@@ -260,4 +260,149 @@ button, input, select { font: inherit; }
 .dev-form button {
   margin-top: 16px; width: 100%; background: #059669; color: #fff;
   border: none; border-radius: 10px; padding: 12px; font-weight: 600; cursor: pointer;
+}
+
+
+/* SVG icons */
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+.nav-icon svg { display: block; }
+.quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.quick-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.quick-icon svg { display: block; }
+.btn svg { flex-shrink: 0; }
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.password-toggle svg {
+  display: block;
+  color: var(--muted);
+}
+.no-img {
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* PWA install banner */
+.pwa-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--nav-h) + 12px);
+  z-index: 90;
+  animation: pwa-in 0.25s ease;
+}
+@keyframes pwa-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pwa-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #1f2937;
+  color: #fff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.25);
+}
+.pwa-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 0;
+}
+.pwa-banner-text svg { flex-shrink: 0; color: #f9a8d4; }
+.pwa-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.pwa-btn-install {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.pwa-btn-dismiss {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+/* Developer bottom with SVG */
+.dev-bottom a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.dev-bottom a svg { display: block; }
+.dev-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dev-brand-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.dev-links a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dev-icon-btn {
+  display: grid;
+  place-items: center;
+}
+.dev-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
