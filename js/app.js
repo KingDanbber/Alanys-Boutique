@@ -5,6 +5,7 @@ import { renderRegister } from './modules/register.js'
 import { renderDashboard } from './modules/dashboard.js'
 import { renderProducts } from './modules/products.js'
 import { renderPlaceholder } from './modules/placeholder.js'
+import { initPWA } from './lib/pwa.js'
 import {
   renderDevOverview,
   renderDevModules,
@@ -76,7 +77,8 @@ async function boot() {
 
 boot()
 
-// PWA service worker
+initPWA()
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {})
