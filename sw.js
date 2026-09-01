@@ -1,4 +1,4 @@
-const CACHE = 'alany-admin-v1.1'
+const CACHE = 'alany-admin-v2'
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,8 @@ const ASSETS = [
   './js/lib/auth.js',
   './js/lib/utils.js',
   './js/lib/cloudinary.js',
+  './js/lib/icons.js',
+  './js/lib/pwa.js',
   './js/modules/welcome.js',
   './js/modules/login.js',
   './js/modules/register.js',
@@ -24,7 +26,9 @@ const ASSETS = [
 ]
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()))
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
+  )
 })
 
 self.addEventListener('activate', (e) => {
@@ -39,10 +43,15 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url)
   if (url.origin !== location.origin) return
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request).then((res) => {
-      const copy = res.clone()
-      caches.open(CACHE).then((c) => c.put(e.request, copy))
-      return res
-    }).catch(() => cached))
+    caches.match(e.request).then((cached) =>
+      cached ||
+      fetch(e.request)
+        .then((res) => {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(e.request, copy))
+          return res
+        })
+        .catch(() => cached)
+    )
   )
 })

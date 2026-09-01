@@ -1,7 +1,7 @@
 {
   "name": "Alany Boutique · Admin",
   "short_name": "Alany Admin",
-  "description": "Panel administrativo de Alany Boutique",
+  "description": "Panel administrativo de Alany Boutique — Moda que te hace brillar",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,16 +9,19 @@
   "background_color": "#fff5f8",
   "theme_color": "#e91e63",
   "lang": "es",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icons/icon-512.png",
