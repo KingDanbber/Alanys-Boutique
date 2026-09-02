@@ -1,6 +1,7 @@
 import { getProfile, signOut } from '../lib/auth.js'
 import { CONFIG } from '../lib/config.js'
 import { icon } from '../lib/icons.js'
+import { renderDevReturnBar } from '../lib/dev-return.js'
 import { renderBottomNav } from './nav.js'
 
 export function renderDashboard(root) {
@@ -9,6 +10,7 @@ export function renderDashboard(root) {
 
   root.innerHTML = `
     <div class="page app-page">
+      ${renderDevReturnBar()}
       <header class="topbar">
         <div>
           <p class="muted small">Hola,</p>

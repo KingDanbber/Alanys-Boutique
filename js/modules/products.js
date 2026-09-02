@@ -3,6 +3,7 @@ import { getProfile } from '../lib/auth.js'
 import { formatMoney, toast, escapeHtml } from '../lib/utils.js'
 import { uploadImage } from '../lib/cloudinary.js'
 import { icon } from '../lib/icons.js'
+import { renderDevReturnBar } from '../lib/dev-return.js'
 import { renderBottomNav } from './nav.js'
 
 const CATEGORIES = ['Blusas', 'Vestidos', 'Pantalones', 'Faldas', 'Accesorios', 'Calzado', 'Otro']
@@ -11,6 +12,7 @@ const TAGS = ['Verano', 'Invierno', 'Otoño', 'Primavera', 'Navideño', 'Escolar
 export async function renderProducts(root) {
   root.innerHTML = `
     <div class="page app-page">
+      ${renderDevReturnBar()}
       <header class="topbar">
         <h1 class="topbar-title">Productos</h1>
         <button type="button" class="btn btn-primary btn-sm" id="btn-new-product">${icon('plus', 16)} Nuevo</button>

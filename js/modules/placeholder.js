@@ -1,8 +1,10 @@
+import { renderDevReturnBar } from '../lib/dev-return.js'
 import { renderBottomNav } from './nav.js'
 
 export function renderPlaceholder(root, title, navId) {
   root.innerHTML = `
     <div class="page app-page">
+      ${renderDevReturnBar()}
       <header class="topbar">
         <h1 class="topbar-title">${title}</h1>
       </header>
