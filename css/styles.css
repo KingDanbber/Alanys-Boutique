@@ -406,3 +406,29 @@ button, input, select { font: inherit; }
   justify-content: center;
   gap: 8px;
 }
+
+
+/* Volver a Developer (solo rol developer) */
+.dev-return-bar {
+  padding: 10px 16px 0;
+}
+.dev-return-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  color: #34d399;
+  border: 1px solid #1e293b;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+}
+.dev-return-btn:active {
+  transform: scale(0.98);
+}
+.dev-return-btn svg {
+  flex-shrink: 0;
+}
