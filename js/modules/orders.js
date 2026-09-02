@@ -2,7 +2,7 @@ import { getSupabase } from '../lib/supabase.js'
 import { getProfile } from '../lib/auth.js'
 import { formatMoney, formatDate, toast, escapeHtml } from '../lib/utils.js'
 import { icon } from '../lib/icons.js'
-import { normalizeSizes, sumSizes } from '../lib/sizes.js'
+import { AUDIENCES, normalizeSizes, sumSizes } from '../lib/sizes.js'
 import { renderDevReturnBar } from '../lib/dev-return.js'
 import { renderBottomNav } from './nav.js'
 
@@ -235,7 +235,7 @@ async function openOrderWizard(root) {
 
   const [{ data: clients }, { data: products }] = await Promise.all([
     sb.from('clients').select('id, name, whatsapp').eq('business_id', businessId).eq('is_active', true).order('name'),
-    sb.from('products').select('id, name, sale_price, cost_price, stock, sizes, image_url').eq('business_id', businessId).eq('is_active', true).order('name'),
+    sb.from('products').select('id, name, brand, category, audience, sale_price, cost_price, stock, sizes, image_url').eq('business_id', businessId).eq('is_active', true).order('name'),
   ])
 
   if (!clients?.length) {
@@ -248,7 +248,22 @@ async function openOrderWizard(root) {
   }
 
   const productMap = Object.fromEntries((products || []).map((p) => [p.id, p]))
-  const cart = [] // { product_id, product_name, size, quantity, sale_price, cost_price, max }
+  const cart = []
+
+  // estado del selector en cascada
+  const state = {
+    clientId: '',
+    clientLabel: 'Seleccionar cliente',
+    audience: '',
+    audienceLabel: 'Seleccionar',
+    category: '',
+    categoryLabel: 'Seleccionar',
+    productId: '',
+    productLabel: 'Seleccionar producto',
+    size: '',
+    sizeLabel: 'Seleccionar talla',
+    qty: 1,
+  }
 
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
@@ -260,22 +275,34 @@ async function openOrderWizard(root) {
       </header>
       <div class="modal-body">
         <label class="label">Cliente *</label>
-        <select id="order-client" class="input" required>
-          <option value="">Seleccionar...</option>
-          ${clients.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</option>`).join('')}
-        </select>
+        <button type="button" class="picker-btn" id="pick-client">
+          <span id="lbl-client">${state.clientLabel}</span>
+          <span class="picker-chevron">▾</span>
+        </button>
+
+        <label class="label">Sexo / público</label>
+        <button type="button" class="picker-btn" id="pick-audience">
+          <span id="lbl-audience">${state.audienceLabel}</span>
+          <span class="picker-chevron">▾</span>
+        </button>
+
+        <label class="label">Tipo de prenda</label>
+        <button type="button" class="picker-btn" id="pick-category" disabled>
+          <span id="lbl-category">${state.categoryLabel}</span>
+          <span class="picker-chevron">▾</span>
+        </button>
 
         <label class="label">Producto</label>
-        <select id="order-product" class="input">
-          ${products.map((p) => {
-            const sizes = normalizeSizes(p.sizes)
-            const stock = Object.keys(sizes).length ? sumSizes(sizes) : Number(p.stock || 0)
-            return `<option value="${p.id}">${escapeHtml(p.name)} · ${formatMoney(p.sale_price)} · Stock ${stock}</option>`
-          }).join('')}
-        </select>
+        <button type="button" class="picker-btn" id="pick-product" disabled>
+          <span id="lbl-product">${state.productLabel}</span>
+          <span class="picker-chevron">▾</span>
+        </button>
 
         <label class="label">Talla *</label>
-        <select id="order-size" class="input"></select>
+        <button type="button" class="picker-btn" id="pick-size" disabled>
+          <span id="lbl-size">${state.sizeLabel}</span>
+          <span class="picker-chevron">▾</span>
+        </button>
 
         <div class="row-2">
           <div>
@@ -310,21 +337,196 @@ async function openOrderWizard(root) {
   overlay.querySelector('#modal-close').onclick = close
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
 
-  function fillSizes() {
-    const pid = overlay.querySelector('#order-product').value
-    const prod = productMap[pid]
-    const sizeSel = overlay.querySelector('#order-size')
-    const sizes = normalizeSizes(prod?.sizes)
-    const keys = Object.keys(sizes).filter((k) => sizes[k] > 0)
-    if (!keys.length) {
-      // fallback: sin tallas detalladas
-      sizeSel.innerHTML = `<option value="">Sin talla / Unitalla (stock ${prod?.stock || 0})</option>`
-      return
-    }
-    sizeSel.innerHTML = keys.map((k) => `<option value="${escapeHtml(k)}">${escapeHtml(k)} · ${sizes[k]} disp.</option>`).join('')
+  function filteredProducts() {
+    return (products || []).filter((p) => {
+      if (state.audience && (p.audience || 'mujer') !== state.audience && p.audience !== 'unisex') return false
+      if (state.category && p.category !== state.category) return false
+      return true
+    })
   }
-  fillSizes()
-  overlay.querySelector('#order-product').addEventListener('change', fillSizes)
+
+  function categoriesForAudience() {
+    const set = new Set()
+    ;(products || []).forEach((p) => {
+      if (state.audience && (p.audience || 'mujer') !== state.audience && p.audience !== 'unisex') return
+      if (p.category) set.add(p.category)
+    })
+    return [...set].sort()
+  }
+
+  function openSheet(title, options, onPick) {
+    // options: [{ value, label, sub? }]
+    const sheet = document.createElement('div')
+    sheet.className = 'picker-sheet-overlay'
+    const rows = options.length
+      ? options.map((o) => `
+          <button type="button" class="picker-option" data-value="${escapeHtml(String(o.value))}">
+            <span class="picker-option-main">${escapeHtml(o.label)}</span>
+            ${o.sub ? `<span class="picker-option-sub">${escapeHtml(o.sub)}</span>` : ''}
+          </button>
+        `).join('')
+      : `<p class="muted center" style="padding:20px">Sin opciones</p>`
+
+    sheet.innerHTML = `
+      <div class="picker-sheet">
+        <div class="picker-sheet-handle"></div>
+        <div class="picker-sheet-head">
+          <h3>${escapeHtml(title)}</h3>
+          <button type="button" class="icon-btn" id="sheet-close">${icon('x', 20)}</button>
+        </div>
+        <div class="picker-search-wrap" style="display:${options.length > 6 ? 'block' : 'none'}">
+          <input type="search" class="input search-input" id="sheet-search" placeholder="Buscar..." />
+        </div>
+        <div class="picker-options" id="sheet-options">${rows}</div>
+      </div>
+    `
+    document.body.appendChild(sheet)
+    const closeSheet = () => sheet.remove()
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet() })
+    sheet.querySelector('#sheet-close').onclick = closeSheet
+
+    const bindOpts = () => {
+      sheet.querySelectorAll('.picker-option').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.value
+          const opt = options.find((o) => String(o.value) === val)
+          if (opt) onPick(opt)
+          closeSheet()
+        })
+      })
+    }
+    bindOpts()
+
+    const search = sheet.querySelector('#sheet-search')
+    if (search) {
+      search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase()
+        const filtered = q
+          ? options.filter((o) => o.label.toLowerCase().includes(q) || (o.sub || '').toLowerCase().includes(q))
+          : options
+        const box = sheet.querySelector('#sheet-options')
+        box.innerHTML = filtered.map((o) => `
+          <button type="button" class="picker-option" data-value="${escapeHtml(String(o.value))}">
+            <span class="picker-option-main">${escapeHtml(o.label)}</span>
+            ${o.sub ? `<span class="picker-option-sub">${escapeHtml(o.sub)}</span>` : ''}
+          </button>
+        `).join('') || `<p class="muted center" style="padding:20px">Sin resultados</p>`
+        bindOpts()
+      })
+    }
+  }
+
+  function resetFrom(level) {
+    if (level <= 1) {
+      state.category = ''
+      state.categoryLabel = 'Seleccionar'
+      overlay.querySelector('#lbl-category').textContent = state.categoryLabel
+    }
+    if (level <= 2) {
+      state.productId = ''
+      state.productLabel = 'Seleccionar producto'
+      overlay.querySelector('#lbl-product').textContent = state.productLabel
+    }
+    if (level <= 3) {
+      state.size = ''
+      state.sizeLabel = 'Seleccionar talla'
+      overlay.querySelector('#lbl-size').textContent = state.sizeLabel
+    }
+    overlay.querySelector('#pick-category').disabled = !state.audience
+    overlay.querySelector('#pick-product').disabled = !state.audience
+    overlay.querySelector('#pick-size').disabled = !state.productId
+  }
+
+  overlay.querySelector('#pick-client').onclick = () => {
+    openSheet('Cliente', clients.map((c) => ({
+      value: c.id,
+      label: c.name,
+      sub: c.whatsapp || '',
+    })), (opt) => {
+      state.clientId = opt.value
+      state.clientLabel = opt.sub ? `${opt.label} · ${opt.sub}` : opt.label
+      overlay.querySelector('#lbl-client').textContent = state.clientLabel
+    })
+  }
+
+  overlay.querySelector('#pick-audience').onclick = () => {
+    openSheet('Sexo / público', AUDIENCES.map((a) => ({
+      value: a.id,
+      label: a.label,
+    })), (opt) => {
+      state.audience = opt.value
+      state.audienceLabel = opt.label
+      overlay.querySelector('#lbl-audience').textContent = opt.label
+      resetFrom(1)
+    })
+  }
+
+  overlay.querySelector('#pick-category').onclick = () => {
+    if (!state.audience) return
+    const cats = categoriesForAudience()
+    openSheet('Tipo de prenda', [
+      { value: '', label: 'Todos los tipos' },
+      ...cats.map((c) => ({ value: c, label: c })),
+    ], (opt) => {
+      state.category = opt.value
+      state.categoryLabel = opt.label
+      overlay.querySelector('#lbl-category').textContent = opt.label
+      resetFrom(2)
+      overlay.querySelector('#pick-product').disabled = false
+    })
+  }
+
+  overlay.querySelector('#pick-product').onclick = () => {
+    if (!state.audience) return
+    const list = filteredProducts()
+    openSheet('Producto', list.map((p) => {
+      const sizes = normalizeSizes(p.sizes)
+      const stock = Object.keys(sizes).length ? sumSizes(sizes) : Number(p.stock || 0)
+      return {
+        value: p.id,
+        label: p.name,
+        sub: `${p.brand ? p.brand + ' · ' : ''}${formatMoney(p.sale_price)} · Stock ${stock}`,
+      }
+    }), (opt) => {
+      state.productId = opt.value
+      state.productLabel = opt.label
+      overlay.querySelector('#lbl-product').textContent = `${opt.label}${opt.sub ? ' · ' + opt.sub.split(' · ').slice(-2).join(' · ') : ''}`
+      // shorter label
+      const prod = productMap[opt.value]
+      if (prod) {
+        const sizes = normalizeSizes(prod.sizes)
+        const stock = Object.keys(sizes).length ? sumSizes(sizes) : Number(prod.stock || 0)
+        overlay.querySelector('#lbl-product').textContent = `${prod.name} · ${formatMoney(prod.sale_price)}`
+        state.productLabel = overlay.querySelector('#lbl-product').textContent
+      }
+      state.size = ''
+      state.sizeLabel = 'Seleccionar talla'
+      overlay.querySelector('#lbl-size').textContent = state.sizeLabel
+      overlay.querySelector('#pick-size').disabled = false
+    })
+  }
+
+  overlay.querySelector('#pick-size').onclick = () => {
+    const prod = productMap[state.productId]
+    if (!prod) return
+    const sizes = normalizeSizes(prod.sizes)
+    const keys = Object.keys(sizes).filter((k) => sizes[k] > 0)
+    let opts
+    if (keys.length) {
+      opts = keys.map((k) => ({
+        value: k,
+        label: k,
+        sub: `Disp. ${sizes[k]}`,
+      }))
+    } else {
+      opts = [{ value: '', label: 'Sin talla / Unitalla', sub: `Disp. ${prod.stock || 0}` }]
+    }
+    openSheet('Talla', opts, (opt) => {
+      state.size = opt.value
+      state.sizeLabel = opt.sub ? `${opt.label} (${opt.sub})` : opt.label
+      overlay.querySelector('#lbl-size').textContent = state.sizeLabel
+    })
+  }
 
   function renderCart() {
     const box = overlay.querySelector('#cart-list')
@@ -380,15 +582,17 @@ async function openOrderWizard(root) {
   }
 
   overlay.querySelector('#btn-add-line').onclick = () => {
-    const pid = overlay.querySelector('#order-product').value
-    const prod = productMap[pid]
+    if (!state.productId) {
+      toast('Selecciona un producto', 'error')
+      return
+    }
+    const prod = productMap[state.productId]
     if (!prod) return
-    const size = overlay.querySelector('#order-size').value
-    const qty = Number(overlay.querySelector('#order-qty').value || 1)
     const sizes = normalizeSizes(prod.sizes)
+    const qty = Number(overlay.querySelector('#order-qty').value || 1)
     let max
-    if (size && sizes[size] != null) {
-      max = Number(sizes[size]) || 0
+    if (state.size && sizes[state.size] != null) {
+      max = Number(sizes[state.size]) || 0
     } else if (Object.keys(sizes).length) {
       toast('Selecciona una talla', 'error')
       return
@@ -403,7 +607,7 @@ async function openOrderWizard(root) {
       toast('Cantidad inválida', 'error')
       return
     }
-    const key = `${pid}::${size || ''}`
+    const key = `${state.productId}::${state.size || ''}`
     const existing = cart.find((l) => `${l.product_id}::${l.size || ''}` === key)
     if (existing) {
       if (existing.quantity + qty > max) {
@@ -417,9 +621,9 @@ async function openOrderWizard(root) {
         return
       }
       cart.push({
-        product_id: pid,
+        product_id: state.productId,
         product_name: prod.name,
-        size: size || null,
+        size: state.size || null,
         quantity: qty,
         sale_price: Number(prod.sale_price) || 0,
         cost_price: Number(prod.cost_price) || 0,
@@ -430,8 +634,7 @@ async function openOrderWizard(root) {
   }
 
   overlay.querySelector('#btn-save-order').onclick = async () => {
-    const clientId = overlay.querySelector('#order-client').value
-    if (!clientId) {
+    if (!state.clientId) {
       toast('Selecciona un cliente', 'error')
       return
     }
@@ -467,7 +670,7 @@ async function openOrderWizard(root) {
         .from('orders')
         .insert({
           business_id: businessId,
-          client_id: clientId,
+          client_id: state.clientId,
           seller_id: profile.id,
           status: 'pendiente',
           total_sale,
