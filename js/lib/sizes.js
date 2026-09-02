@@ -1,7 +1,7 @@
 /** Catálogo de tallas por público — boutique MX */
 export const AUDIENCES = [
   { id: 'mujer', label: 'Mujer' },
-  { id: 'hombre', label: 'Hombre' },
+  { id: 'hombre', label: 'Caballero' },
   { id: 'nino', label: 'Niño' },
   { id: 'nina', label: 'Niña' },
   { id: 'unisex', label: 'Unisex' },
