@@ -1,4 +1,4 @@
-const CACHE = 'alany-admin-v2'
+const CACHE = 'alany-admin-v3'
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   './js/lib/cloudinary.js',
   './js/lib/icons.js',
   './js/lib/pwa.js',
+  './js/lib/dev-return.js',
   './js/modules/welcome.js',
   './js/modules/login.js',
   './js/modules/register.js',
