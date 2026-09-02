@@ -664,3 +664,47 @@ button, input, select { font: inherit; }
 }
 .cart-line-total { font-size: 0.85rem; min-width: 64px; text-align: right; }
 .modal-tall { max-height: 94dvh; }
+
+
+/* Dashboard extras */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.section-head .section-title { margin: 0; }
+.dash-order-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.dash-order-row strong { font-size: 0.9rem; }
+.dash-order-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.dash-stock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+.dash-stock-row .warn,
+.kpi-value.warn {
+  color: var(--warn);
+}
