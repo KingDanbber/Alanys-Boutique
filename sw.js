@@ -1,4 +1,4 @@
-const CACHE = 'alany-admin-v8'
+const CACHE = 'alany-admin-v9'
 const ASSETS = [
   './',
   './index.html',
