@@ -6,6 +6,7 @@ import { renderDashboard } from './modules/dashboard.js'
 import { renderProducts } from './modules/products.js'
 import { renderPlaceholder } from './modules/placeholder.js'
 import { renderClients } from './modules/clients.js'
+import { renderOrders } from './modules/orders.js'
 import { initPWA } from './lib/pwa.js'
 import {
   renderDevOverview,
@@ -23,7 +24,7 @@ const routes = {
   '/register': renderRegister,
   '/dashboard': renderDashboard,
   '/productos': renderProducts,
-  '/pedidos': (root) => renderPlaceholder(root, 'Pedidos', 'pedidos'),
+  '/pedidos': renderOrders,
   '/clientes': renderClients,
   '/gastos': (root) => renderPlaceholder(root, 'Gastos', 'mas'),
   '/mas': (root) => renderPlaceholder(root, 'Más', 'mas'),
