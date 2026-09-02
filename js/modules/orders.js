@@ -2,6 +2,7 @@ import { getSupabase } from '../lib/supabase.js'
 import { getProfile } from '../lib/auth.js'
 import { formatMoney, formatDate, toast, escapeHtml } from '../lib/utils.js'
 import { icon } from '../lib/icons.js'
+import { normalizeSizes, sumSizes } from '../lib/sizes.js'
 import { renderDevReturnBar } from '../lib/dev-return.js'
 import { renderBottomNav } from './nav.js'
 
@@ -146,7 +147,7 @@ async function openOrderDetail(root, orderId, filterStatus) {
         <div class="order-items-list">
           ${(order.order_items || []).map((it) => `
             <div class="order-item-row">
-              <span>${escapeHtml(it.product_name)} × ${it.quantity}</span>
+              <span>${escapeHtml(it.product_name)}${it.size ? ' · Talla ' + escapeHtml(it.size) : ''} × ${it.quantity}</span>
               <strong>${formatMoney(it.sale_price * it.quantity)}</strong>
             </div>
           `).join('')}
@@ -199,10 +200,14 @@ async function restoreStock(order) {
   const profile = getProfile()
   for (const it of order.order_items || []) {
     if (!it.product_id) continue
-    const { data: prod } = await sb.from('products').select('stock').eq('id', it.product_id).single()
+    const { data: prod } = await sb.from('products').select('stock, sizes').eq('id', it.product_id).single()
     if (!prod) continue
-    const after = (prod.stock || 0) + it.quantity
-    await sb.from('products').update({ stock: after }).eq('id', it.product_id)
+    const sizes = normalizeSizes(prod.sizes)
+    if (it.size) {
+      sizes[it.size] = (Number(sizes[it.size]) || 0) + it.quantity
+    }
+    const after = Object.keys(sizes).length ? sumSizes(sizes) : (prod.stock || 0) + it.quantity
+    await sb.from('products').update({ stock: after, sizes }).eq('id', it.product_id)
     await sb.from('inventory_movements').insert({
       business_id: order.business_id,
       user_id: profile?.id,
@@ -213,7 +218,7 @@ async function restoreStock(order) {
       stock_after: after,
       reference_type: 'order',
       reference_id: order.id,
-      notes: 'Reposición por cancelación de pedido',
+      notes: it.size ? `Reposición cancelación talla ${it.size}` : 'Reposición por cancelación de pedido',
     })
   }
 }
@@ -230,7 +235,7 @@ async function openOrderWizard(root) {
 
   const [{ data: clients }, { data: products }] = await Promise.all([
     sb.from('clients').select('id, name, whatsapp').eq('business_id', businessId).eq('is_active', true).order('name'),
-    sb.from('products').select('id, name, sale_price, cost_price, stock, image_url').eq('business_id', businessId).eq('is_active', true).order('name'),
+    sb.from('products').select('id, name, sale_price, cost_price, stock, sizes, image_url').eq('business_id', businessId).eq('is_active', true).order('name'),
   ])
 
   if (!clients?.length) {
@@ -242,7 +247,8 @@ async function openOrderWizard(root) {
     return
   }
 
-  const cart = [] // { product_id, product_name, quantity, sale_price, cost_price, max }
+  const productMap = Object.fromEntries((products || []).map((p) => [p.id, p]))
+  const cart = [] // { product_id, product_name, size, quantity, sale_price, cost_price, max }
 
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
@@ -259,12 +265,26 @@ async function openOrderWizard(root) {
           ${clients.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</option>`).join('')}
         </select>
 
-        <label class="label">Agregar producto</label>
-        <div class="add-product-row">
-          <select id="order-product" class="input">
-            ${products.map((p) => `<option value="${p.id}" data-name="${escapeHtml(p.name)}" data-sale="${p.sale_price}" data-cost="${p.cost_price}" data-stock="${p.stock}">${escapeHtml(p.name)} · ${formatMoney(p.sale_price)} · Stock ${p.stock}</option>`).join('')}
-          </select>
-          <button type="button" class="btn btn-primary btn-sm" id="btn-add-line">${icon('plus', 16)}</button>
+        <label class="label">Producto</label>
+        <select id="order-product" class="input">
+          ${products.map((p) => {
+            const sizes = normalizeSizes(p.sizes)
+            const stock = Object.keys(sizes).length ? sumSizes(sizes) : Number(p.stock || 0)
+            return `<option value="${p.id}">${escapeHtml(p.name)} · ${formatMoney(p.sale_price)} · Stock ${stock}</option>`
+          }).join('')}
+        </select>
+
+        <label class="label">Talla *</label>
+        <select id="order-size" class="input"></select>
+
+        <div class="row-2">
+          <div>
+            <label class="label">Cantidad</label>
+            <input type="number" id="order-qty" class="input" min="1" value="1" inputmode="numeric" />
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button type="button" class="btn btn-primary btn-block" id="btn-add-line">${icon('plus', 16)} Agregar</button>
+          </div>
         </div>
 
         <div id="cart-list" class="cart-list">
@@ -290,6 +310,22 @@ async function openOrderWizard(root) {
   overlay.querySelector('#modal-close').onclick = close
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
 
+  function fillSizes() {
+    const pid = overlay.querySelector('#order-product').value
+    const prod = productMap[pid]
+    const sizeSel = overlay.querySelector('#order-size')
+    const sizes = normalizeSizes(prod?.sizes)
+    const keys = Object.keys(sizes).filter((k) => sizes[k] > 0)
+    if (!keys.length) {
+      // fallback: sin tallas detalladas
+      sizeSel.innerHTML = `<option value="">Sin talla / Unitalla (stock ${prod?.stock || 0})</option>`
+      return
+    }
+    sizeSel.innerHTML = keys.map((k) => `<option value="${escapeHtml(k)}">${escapeHtml(k)} · ${sizes[k]} disp.</option>`).join('')
+  }
+  fillSizes()
+  overlay.querySelector('#order-product').addEventListener('change', fillSizes)
+
   function renderCart() {
     const box = overlay.querySelector('#cart-list')
     if (!cart.length) {
@@ -298,7 +334,7 @@ async function openOrderWizard(root) {
       box.innerHTML = cart.map((line, idx) => `
         <div class="cart-line">
           <div class="cart-line-info">
-            <strong>${escapeHtml(line.product_name)}</strong>
+            <strong>${escapeHtml(line.product_name)}${line.size ? ' · ' + escapeHtml(line.size) : ''}</strong>
             <span class="muted small">${formatMoney(line.sale_price)} c/u</span>
           </div>
           <div class="cart-line-qty">
@@ -328,7 +364,7 @@ async function openOrderWizard(root) {
         const next = line.quantity + d
         if (next < 1) return
         if (next > line.max) {
-          toast(`Stock máximo: ${line.max}`, 'error')
+          toast(`Máximo disponible: ${line.max}`, 'error')
           return
         }
         line.quantity = next
@@ -344,29 +380,49 @@ async function openOrderWizard(root) {
   }
 
   overlay.querySelector('#btn-add-line').onclick = () => {
-    const sel = overlay.querySelector('#order-product')
-    const opt = sel.selectedOptions[0]
-    if (!opt) return
-    const id = opt.value
-    const max = Number(opt.dataset.stock) || 0
+    const pid = overlay.querySelector('#order-product').value
+    const prod = productMap[pid]
+    if (!prod) return
+    const size = overlay.querySelector('#order-size').value
+    const qty = Number(overlay.querySelector('#order-qty').value || 1)
+    const sizes = normalizeSizes(prod.sizes)
+    let max
+    if (size && sizes[size] != null) {
+      max = Number(sizes[size]) || 0
+    } else if (Object.keys(sizes).length) {
+      toast('Selecciona una talla', 'error')
+      return
+    } else {
+      max = Number(prod.stock) || 0
+    }
     if (max < 1) {
-      toast('Sin stock de este producto', 'error')
+      toast('Sin stock en esa talla', 'error')
       return
     }
-    const existing = cart.find((l) => l.product_id === id)
+    if (qty < 1) {
+      toast('Cantidad inválida', 'error')
+      return
+    }
+    const key = `${pid}::${size || ''}`
+    const existing = cart.find((l) => `${l.product_id}::${l.size || ''}` === key)
     if (existing) {
-      if (existing.quantity + 1 > max) {
-        toast(`Stock máximo: ${max}`, 'error')
+      if (existing.quantity + qty > max) {
+        toast(`Máximo disponible: ${max}`, 'error')
         return
       }
-      existing.quantity += 1
+      existing.quantity += qty
     } else {
+      if (qty > max) {
+        toast(`Máximo disponible: ${max}`, 'error')
+        return
+      }
       cart.push({
-        product_id: id,
-        product_name: opt.dataset.name,
-        quantity: 1,
-        sale_price: Number(opt.dataset.sale) || 0,
-        cost_price: Number(opt.dataset.cost) || 0,
+        product_id: pid,
+        product_name: prod.name,
+        size: size || null,
+        quantity: qty,
+        sale_price: Number(prod.sale_price) || 0,
+        cost_price: Number(prod.cost_price) || 0,
         max,
       })
     }
@@ -393,11 +449,17 @@ async function openOrderWizard(root) {
     const notes = overlay.querySelector('#order-notes').value.trim() || null
 
     try {
-      // Re-check stock
       for (const line of cart) {
-        const { data: prod } = await sb.from('products').select('stock, name').eq('id', line.product_id).single()
-        if (!prod || prod.stock < line.quantity) {
-          throw new Error(`Stock insuficiente: ${prod?.name || line.product_name}`)
+        const { data: prod } = await sb.from('products').select('stock, sizes, name').eq('id', line.product_id).single()
+        if (!prod) throw new Error('Producto no encontrado')
+        const sizes = normalizeSizes(prod.sizes)
+        if (line.size && Object.keys(sizes).length) {
+          const available = Number(sizes[line.size]) || 0
+          if (available < line.quantity) {
+            throw new Error(`Stock insuficiente: ${prod.name} talla ${line.size}`)
+          }
+        } else if ((prod.stock || 0) < line.quantity) {
+          throw new Error(`Stock insuficiente: ${prod.name}`)
         }
       }
 
@@ -422,6 +484,7 @@ async function openOrderWizard(root) {
         order_id: order.id,
         product_id: l.product_id,
         product_name: l.product_name,
+        size: l.size,
         quantity: l.quantity,
         sale_price: l.sale_price,
         cost_price: l.cost_price,
@@ -430,12 +493,15 @@ async function openOrderWizard(root) {
       const { error: itemsErr } = await sb.from('order_items').insert(items)
       if (itemsErr) throw itemsErr
 
-      // Descontar stock + movimientos
       for (const line of cart) {
-        const { data: prod } = await sb.from('products').select('stock').eq('id', line.product_id).single()
+        const { data: prod } = await sb.from('products').select('stock, sizes').eq('id', line.product_id).single()
+        const sizes = normalizeSizes(prod?.sizes)
+        if (line.size && Object.keys(sizes).length) {
+          sizes[line.size] = Math.max(0, (Number(sizes[line.size]) || 0) - line.quantity)
+        }
         const before = prod?.stock || 0
-        const after = before - line.quantity
-        await sb.from('products').update({ stock: after }).eq('id', line.product_id)
+        const after = Object.keys(sizes).length ? sumSizes(sizes) : before - line.quantity
+        await sb.from('products').update({ stock: after, sizes }).eq('id', line.product_id)
         await sb.from('inventory_movements').insert({
           business_id: businessId,
           user_id: profile.id,
@@ -446,7 +512,7 @@ async function openOrderWizard(root) {
           stock_after: after,
           reference_type: 'order',
           reference_id: order.id,
-          notes: 'Venta',
+          notes: line.size ? `Venta talla ${line.size}` : 'Venta',
         })
       }
 
